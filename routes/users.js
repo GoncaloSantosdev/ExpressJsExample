@@ -1,31 +1,19 @@
 var express = require('express');
 var router = express.Router();
 
-const users = [{
-  name: "James",
-  role: "Instructor"
-}, {
-  name: "Ginny",
-  role: "TA"
-}]
+let favMovies = ['Rocky Balboa', 'Green Street Hooligans', 'Southpaw'];
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+  res.render('users', {title: 'Users'});
 });
 
-router.get('/myname', (req, res) => {
-  const firstName = req.query.firstname
-  const lastName = req.query.lastname
-  res.send("The current user is: " + firstName + " "+ lastName)
-})
+router.get('/myname', function(req, res){
+  res.send('Gonçalo Santos');
+});
 
-router.get('/getone/:userNumber', (req, res) => {
-  const userNumber = req.params.userNumber
-  const foundUser = users[userNumber];
-  //JSON: Javascript Object Notation
-  res.json(foundUser)
+router.get('/myfavoritemovies', function(req,res){
+  res.json(favMovies);
 })
-
 
 module.exports = router;

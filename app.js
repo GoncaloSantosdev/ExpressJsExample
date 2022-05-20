@@ -6,14 +6,14 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var dateTimeRouter = require('./routes/datetime');
+var datetimeRouter = require('./routes/datetime');
 var blogsRouter = require('./routes/blogs');
 
 var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.set('view engine', 'ejs');
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -23,8 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/datetime', dateTimeRouter);
-app.use('/datetime', dateTimeRouter);
+app.use('/datetime', datetimeRouter);
 app.use('/blogs', blogsRouter);
 
 // catch 404 and forward to error handler
