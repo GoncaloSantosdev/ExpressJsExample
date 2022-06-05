@@ -1,20 +1,43 @@
 var express = require('express');
 var router = express.Router();
-var blogs = require("../public/javascripts/sampleBlogs");
-let blogPosts = blogs.blogPosts;
+
+var blogs = require("../public/javascripts/sampleBlogs")
+let blogPosts = blogs.blogPosts
+
+const { blogsDB } = require('../mongo');
+const { post } = require('../app');
 
 /* GET blogs listing. */
-router.get('/', function (req, res, next) {
-    res.render('blogs', {
-        title: 'Blogs'
-    });
+router.get('/', async function (req, res, next) {
+    try {
+        const collection = await blogsDB().collection('posts');
+        const posts = await collection.find({}).toArray();
+        res.json(posts);
+    } catch (e) {
+        res.status(500).send("Error fetching posts." + e)
+    }
+
 });
 
 // QUERY PARAM
-router.get('/all', function (req, res) {
-    let sort = req.query.sort;
-    const sortedBlogs = sortBlogs(sort);
-    res.json(sortedBlogs);
+router.get('/all', async function (req, res) {
+    try {
+        let field = req.query.field;
+        let order = req.query.order;
+        if (order === "asc") {
+            order = 1;
+        }
+        if (order === "desc") {
+            order = -1
+        }
+        const collection = await blogsDB().collection('posts');
+        const posts = await collection.find({}).sort({
+            [field]: order
+        }).toArray();
+        res.json(posts);
+    } catch (e) {
+        res.status(500).send("Error fetching posts." + e)
+    }
 });
 
 router.get('/display-blogs', function (req, res) {
@@ -22,56 +45,105 @@ router.get('/display-blogs', function (req, res) {
 });
 
 router.get('/display-single-blog', (req, res) => {
-    res.render('displaySingleBlogs');
+    res.render('displaySingleBlog');
 });
 
 // ROUTE PARAM
-router.get('/single-blog/:blogId', (req, res) => {
-    console.log(req.params);
-    const blogId = req.params.blogId;
-    const foundBlog = findBlogId(blogId)
-    res.json(foundBlog);
+router.get('/single-blog/:blogId', async function (req, res) {
+    try {
+        const blogId = Number(req.params.blogId) - 1;
+        const collection = await blogsDB().collection('posts');
+        // const foundBlog = await collection.findOne({
+        //     id: blogId
+        // });
+        const blogs = await collection.find({}).toArray();
+        const foundBlog = blogs[blogId];
+        res.json(foundBlog);
+    } catch (error) {
+        res.status(500).send("Error fetching posts." + error)
+    }
+
 });
 
-router.delete('/delete-blog/:blogId', (req, res) => {
-    const blogId = req.params.blogId;
-    const filteredBlogList = generateBlogs(blogPosts, blogId, "filter");
-    saveBlogPosts(filteredBlogList);
-    res.json('Successfully Deleted');
+router.delete('/delete-blog/:blogId', async (req, res) => {
+    try {
+        const blogId = Number(req.params.blogId);
+        const collection = await blogsDB().collection('posts');
+        const blogToDelete = await collection.findOne({id: blogId});
+        await collection.deleteOne({id: blogId})
+        res.status(200).send('Successfully Deleted')
+    } catch (error) {
+        res.status(500).send("Error deleting blog." + error)
+    }
 });
 
 router.get('/post-blog', (req, res, next) => {
-    res.render('postBlogs');
+    res.render('postBlog');
 });
 
-router.post('/submit', (req, res) => {
-    blogPosts.push(addBlogPost(req.body));
-    res.json('OK')
-});
+router.post('/submit', async function (req, res) {
+    try {
+        const collection = await blogsDB().collection('posts');
+        const sortedBlogArr = await collection.find({}).sort({id: 1}).toArray();
+        const lastBlog = sortedBlogArr[sortedBlogArr.length - 1];
+        let blog = req.body;
+        const blogTitle = blog.title ? blog.title : '';
+        const blogText = blog.text ? blog.text : '';
+        const blogAuthor = blog.author ? blog.author : '';
+        const blogCategory = blog.category ? blog.category : '';
+        const today = new Date();
+        const newBlog = {
+            createdAt: today,
+            lastModified: today,
+            title: blogTitle,
+            text: blogText,
+            author: blogAuthor,
+            category: blogCategory,
+            id: Number(lastBlog.id + 1),
+        };
 
-router.put('/update-blog/:blogId', (req, res) => {
-    console.log('hit route')
-    const blogId = req.params.blogId;
-    const title = req.body.title;
-    const text = req.body.text;
-    const author = req.body.author;
-    const updatedBlogData = {
-        title,
-        text,
-        author
+        await collection.insertOne(newBlog);
+        res.status(200).send('Successfully Posted')
+    } catch (error) {
+        res.status(500).send("Error posting blog." + error)
     }
-    const updatedBlogList = generateBlogs(blogPosts, blogId, "update", updatedBlogData);
-    saveBlogPosts(updatedBlogList);
-    res.json('OK');
+
+});
+
+router.put('/update-blog/:blogId', async function (req, res) {
+    try {
+        const collection = await blogsDB().collection('posts');
+        const blogId = Number(req.params.blogId);
+        const blogInfo = await collection.findOne({id: blogId});
+        let updateBlog = req.body;
+        const blogTitle = updateBlog.title ? updateBlog.title : blogInfo.title;
+        const blogText = updateBlog.text ? updateBlog.text : blogInfo.text;
+        const blogAuthor = updateBlog.author ? updateBlog.author : blogInfo.author;
+        const blogCategory = updateBlog.category ? updateBlog.category : blogInfo.category;
+
+        updateBlog = {
+            lastModified: new Date(),
+            title: blogTitle,
+            text: blogText,
+            author: blogAuthor,
+            category: blogCategory,
+        };
+        await collection.updateOne({
+            id: blogId
+        }, {
+            $set: updateBlog
+        });
+        res.status(200).send('Successfully Updated')
+    } catch (error) {
+        res.status(500).send("Error updating blog." + error)
+    }
 })
 
-/* HELPER FUNCTION */
 let saveBlogPosts = (blogList) => {
     return blogPosts = blogList;
 }
 
 let generateBlogs = (blogList, blogId, filterOrUpdate, updatedBlogData) => {
-
     if (!blogId) {
         return blogList;
     }
@@ -100,23 +172,8 @@ let filterBlogListById = (bloglist, id) => {
 }
 
 let findBlogId = (id) => {
-    // ANONYMOUS FUNCTION
     const foundBlog = blogPosts.find(blog => blog.id === id);
     return foundBlog;
-};
-
-let sortBlogs = (order) => {
-    if (order === 'asc') {
-        return blogPosts.sort(function (a, b) {
-            return new Date(a.createdAt) - new Date(b.createdAt)
-        })
-    } else if (order === 'desc') {
-        return blogPosts.sort(function (a, b) {
-            return new Date(b.createdAt) - new Date(a.createdAt)
-        });
-    } else {
-        return blogPosts;
-    }
 };
 
 let addBlogPost = (body) => {
@@ -131,3 +188,17 @@ let addBlogPost = (body) => {
 }
 
 module.exports = router;
+
+// let sortBlogs = (order, posts) => {
+//     if (order === 'asc') {
+//         return posts.sort(function (a, b) {
+//             return new Date(a.createdAt) - new Date(b.createdAt)
+//         })
+//     } else if (order === 'desc') {
+//         return posts.sort(function (a, b) {
+//             return new Date(b.createdAt) - new Date(a.createdAt)
+//         });
+//     } else {
+//         return blogPosts;
+//     }
+// };

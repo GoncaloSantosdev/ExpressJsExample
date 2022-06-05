@@ -1,4 +1,4 @@
-const blogPosts = [
+let blogPosts = [
   {
     createdAt: "2022-03-22T10:36:37.176Z",
     title: "dicta",
@@ -33,7 +33,7 @@ const blogPosts = [
     text: "Porro officia aliquid fugiat sed reprehenderit illo amet doloribus sed. Molestiae vero et. Quae voluptates dolores. Voluptatem facere fuga. Veniam perferendis illo ut sunt earum deleniti.\n \rIusto neque dolorem esse error. Saepe et quia ut corrupti. Autem repellendus similique dolorem sunt in ipsa perferendis. Et excepturi ut voluptatem deserunt accusantium dolores aperiam cum ut.\n \rDoloremque expedita sit et voluptatem unde libero. Numquam beatae sed repellat iusto doloribus fugit tenetur. Possimus et ut adipisci harum voluptatem provident consequatur. Corporis quo aut vel itaque blanditiis illum.",
     author: "Bobbie Dach",
     id: "5",
-  },
+  }
 ];
 
 module.exports = {
