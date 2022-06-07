@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-var blogs = require("../public/javascripts/sampleBlogs")
+var blogs = require("../public/javascripts/sampleBlogs");
 let blogPosts = blogs.blogPosts
 
 const { blogsDB } = require('../mongo');
